@@ -1,23 +1,24 @@
-import { Sprout } from 'lucide-react';
+import React from "react";
 
-function Header({ modelStatus }) {
-  const isModelReady = modelStatus === 'Model AI Siap';
-  
+export default function Header({ modelStatus }) {
   return (
-    <header className="header">
-      <div className="header-content">
-        <div className="logo">
-          <Sprout size={20} />
-          <span>RootFacts</span>
-        </div>
-        
-        <div className="status-pill">
-          <span className={`status-dot ${isModelReady ? 'active' : ''}`}></span>
-          <span>{modelStatus}</span>
-        </div>
+    <header
+      style={{
+        padding: "1rem",
+        textAlign: "center",
+        borderBottom: "1px solid #ccc",
+        marginBottom: "2rem",
+      }}
+    >
+      <h1 style={{ margin: "0 0 0.5rem 0" }}>Root Fact App</h1>
+      <div
+        style={{
+          fontSize: "0.9rem",
+          color: modelStatus === "ready" ? "green" : "orange",
+        }}
+      >
+        Status Sistem: {modelStatus.toUpperCase()}
       </div>
     </header>
   );
 }
-
-export default Header;

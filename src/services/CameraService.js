@@ -1,35 +1,42 @@
 export class CameraService {
   constructor() {
+    this.videoElement = null;
     this.stream = null;
-    this.video = null;
-    this.canvas = null;
-    this.config = null;
   }
 
-  setVideoElement(videoElement) {
-    this.video = videoElement;
+  async start() {
+    if (!this.videoElement) {
+      throw new Error("Video element is not set");
+    }
+
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "environment",
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+        },
+      });
+
+      this.videoElement.srcObject = this.stream;
+
+      return new Promise((resolve) => {
+        this.videoElement.onloadedmetadata = () => {
+          resolve();
+        };
+      });
+    } catch (error) {
+      throw error;
+    }
   }
 
-  setCanvasElement(canvasElement) {
-    this.canvas = canvasElement;
+  stop() {
+    if (this.stream) {
+      this.stream.getTracks().forEach((track) => track.stop());
+      this.stream = null;
+    }
+    if (this.videoElement) {
+      this.videoElement.srcObject = null;
+    }
   }
-
-  // TODO [Basic] Tambahkan konfigurasi kamera untuk mendapatkan daftar perangkat input video
-  // TODO [Basic] Dapatkan constraints kamera berdasarkan konfigurasi dan kamera yang dipilih
-  async loadCameras() {}
-
-  // TODO [Basic] Memulai kamera dengan perangkat yang dipilih dan menampilkan pada elemen video
-  async startCamera(selectedCameraId) {}
-
-  // TODO [Basic] Menghentikan siaran kamera dan membersihkan sumber daya
-  stopCamera() {}
-
-  // TODO [Skilled] Implementasikan metode untuk mengatur FPS kamera
-  setFPS(fps) {}
-
-  // TODO [Basic] Periksa apakah kamera sedang aktif
-  isActive() {}
-
-  // TODO [Basic] Periksa apakah elemen video siap untuk digunakan
-  isReady() {}
 }

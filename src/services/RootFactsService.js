@@ -1,4 +1,7 @@
-import { TONE_CONFIG } from '../utils/config.js';
+import { pipeline, env } from "@huggingface/transformers";
+import { TONE_CONFIG } from "../utils/config.js";
+
+env.allowLocalModels = false;
 
 export class RootFactsService {
   constructor() {
@@ -7,21 +10,64 @@ export class RootFactsService {
     this.isGenerating = false;
     this.config = null;
     this.currentBackend = null;
-    this.currentTone = TONE_CONFIG.defaultTone;
+    this.currentTone = TONE_CONFIG?.defaultTone || "normal";
   }
 
-  // TODO [Basic] Muat model dan inisialisasi pipeline text2text-generation
-  // TODO [Advance] Implementasikan strategi Backend Adaptive
-  async loadModel() {}
+  async loadModel() {
+    try {
+      if (navigator.gpu) {
+        env.backends.onnx.wasm.numThreads = 1;
+      }
+      const device = navigator.gpu ? "webgpu" : "wasm";
 
-  // TODO [Advance] Konfigurasi tone fakta yang dihasilkan
-  setTone(tone) {}
+      this.generator = await pipeline(
+        "text2text-generation",
+        "Xenova/LaMini-Flan-T5-783M",
+        {
+          dtype: "q4",
+          device: device,
+        },
+      );
 
-  // TODO [Basic] Lakukan prediksi pada elemen gambar yang diberikan dan kembalikan hasilnya
-  // TODO [Skilled] Konfigurasikan parameter generasi berdasarkan kebutuhan
-  // TODO [Advance] Implemenasikan parameter tone untuk mengatur nada fakta yang dihasilkan
-  async generateFacts(vegetableName) {}
+      this.isModelLoaded = true;
+    } catch (error) {
+      throw error;
+    }
+  }
 
-  // TODO [Basic] Periksa apakah model sudah dimuat dan siap digunakan
-  isReady() {}
+  setTone(tone) {
+    this.currentTone = tone;
+  }
+
+  async generateFacts(vegetableName) {
+    if (!this.isModelLoaded || this.isGenerating) return null;
+    this.isGenerating = true;
+
+    try {
+      let prompt = `Tell me an interesting fun fact about ${vegetableName}.`;
+
+      if (this.currentTone === "funny") {
+        prompt = `Tell me a hilarious and funny fact about ${vegetableName}.`;
+      } else if (this.currentTone === "historical") {
+        prompt = `Tell me a historical fact about the origin of ${vegetableName}.`;
+      }
+
+      const result = await this.generator(prompt, {
+        max_new_tokens: 150,
+        temperature: 0.7,
+        top_p: 0.9,
+        do_sample: true,
+      });
+
+      this.isGenerating = false;
+      return result[0].generated_text;
+    } catch (error) {
+      this.isGenerating = false;
+      throw error;
+    }
+  }
+
+  isReady() {
+    return this.isModelLoaded;
+  }
 }
