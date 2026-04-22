@@ -7,49 +7,27 @@ export default function InfoPanel({
   onCopy,
 }) {
   return (
-    <section
-      className="info-panel"
-      style={{
-        marginTop: "2rem",
-        padding: "1rem",
-        borderTop: "1px solid #ccc",
-      }}
-    >
+    <section className="info-panel">
       {detectionResult && (
-        <div style={{ marginBottom: "1rem" }}>
-          <h2 style={{ margin: "0 0 0.5rem 0" }}>
-            Sayuran Terdeteksi: {detectionResult.label}
-          </h2>
-          <p style={{ margin: 0 }}>
+        <div className="result-card">
+          <h2>Sayuran Terdeteksi: {detectionResult.label}</h2>
+          <p style={{ margin: 0, color: "var(--text-muted)" }}>
             Tingkat Kepercayaan: {(detectionResult.score * 100).toFixed(1)}%
           </p>
         </div>
       )}
 
       {appState === "generating" && (
-        <div style={{ fontStyle: "italic", color: "#666" }}>
-          <p>Sedang menyusun fakta menarik...</p>
-        </div>
+        <p style={{ fontStyle: "italic", color: "var(--text-muted)" }}>
+          Sedang menyusun fakta menarik...
+        </p>
       )}
 
       {funFactData && appState !== "generating" && (
-        <div
-          style={{
-            backgroundColor: "#f9f9f9",
-            padding: "1rem",
-            borderRadius: "8px",
-          }}
-        >
-          <h3 style={{ marginTop: 0 }}>Fun Fact ({funFactData.tone}):</h3>
-          <p style={{ lineHeight: "1.5" }}>{funFactData.text}</p>
-          <button
-            onClick={() => onCopy(funFactData.text)}
-            style={{
-              marginTop: "0.5rem",
-              padding: "0.5rem 1rem",
-              cursor: "pointer",
-            }}
-          >
+        <div className="fact-card">
+          <h3>Fun Fact ({funFactData.tone}):</h3>
+          <p>{funFactData.text}</p>
+          <button onClick={() => onCopy(funFactData.text)}>
             Salin ke Papan Klip
           </button>
         </div>

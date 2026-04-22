@@ -7,17 +7,12 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: [
-        "favicon.ico",
-        "apple-touch-icon.png",
-        "icons/*.png",
-        "model/*",
-      ],
+      includeAssets: ["favicon.ico", "icons/*.png", "model/*"],
       manifest: {
         name: "Root Fact App",
         short_name: "RootFact",
-        description: "Aplikasi cerdas pendeteksi sayuran dengan fakta unik",
-        theme_color: "#ffffff",
+        description: "Aplikasi AI pendeteksi sayuran dengan fakta unik",
+        theme_color: "#10b981",
         background_color: "#ffffff",
         display: "standalone",
         icons: [
@@ -35,7 +30,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,json,bin,wasm}"],
-        maximumFileSizeToCacheInBytes: 100000000,
+        maximumFileSizeToCacheInBytes: 500000000,
       },
     }),
   ],

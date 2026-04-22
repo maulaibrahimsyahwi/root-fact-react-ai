@@ -8,12 +8,10 @@ export class RootFactsService {
     this.generator = null;
     this.isModelLoaded = false;
     this.isGenerating = false;
-    this.config = null;
-    this.currentBackend = null;
     this.currentTone = TONE_CONFIG?.defaultTone || "normal";
   }
 
-  async loadModel() {
+  async loadModel(onProgress) {
     try {
       if (navigator.gpu) {
         env.backends.onnx.wasm.numThreads = 1;
@@ -22,10 +20,15 @@ export class RootFactsService {
 
       this.generator = await pipeline(
         "text2text-generation",
-        "Xenova/LaMini-Flan-T5-783M",
+        "Xenova/LaMini-Flan-T5-77M",
         {
           dtype: "q4",
           device: device,
+          progress_callback: (info) => {
+            if (info.status === "downloading" && onProgress && info.progress) {
+              onProgress(Math.round(info.progress));
+            }
+          },
         },
       );
 

@@ -6,8 +6,10 @@ export default function CameraSection({
   modelStatus,
   error,
   currentTone,
+  currentFps,
   onToggleCamera,
   onToneChange,
+  onFpsChange,
 }) {
   const videoRef = useRef(null);
 
@@ -19,49 +21,27 @@ export default function CameraSection({
 
   return (
     <section className="camera-section">
-      <div
-        className="camera-container"
-        style={{
-          position: "relative",
-          width: "100%",
-          maxWidth: "500px",
-          margin: "0 auto",
-          backgroundColor: "#000",
-          borderRadius: "8px",
-          overflow: "hidden",
-        }}
-      >
+      <div className="camera-container">
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted
-          style={{ width: "100%", display: isRunning ? "block" : "none" }}
+          style={{ display: isRunning ? "block" : "none" }}
         />
         {!isRunning && (
-          <div
-            style={{ padding: "4rem 1rem", textAlign: "center", color: "#fff" }}
-          >
+          <div className="camera-placeholder">
             {modelStatus === "loading"
-              ? "Menunggu Model AI..."
+              ? "Inisialisasi Model..."
               : "Kamera Nonaktif"}
           </div>
         )}
       </div>
 
-      <div
-        className="controls"
-        style={{
-          display: "flex",
-          gap: "1rem",
-          justifyContent: "center",
-          marginTop: "1rem",
-        }}
-      >
+      <div className="controls">
         <button
           onClick={onToggleCamera}
           disabled={modelStatus === "loading" || !!error}
-          style={{ padding: "0.5rem 1rem", cursor: "pointer" }}
         >
           {isRunning ? "Matikan Kamera" : "Nyalakan Kamera"}
         </button>
@@ -70,11 +50,20 @@ export default function CameraSection({
           value={currentTone}
           onChange={(e) => onToneChange(e.target.value)}
           disabled={modelStatus === "loading"}
-          style={{ padding: "0.5rem" }}
         >
-          <option value="normal">Gaya Bahasa: Normal</option>
-          <option value="funny">Gaya Bahasa: Lucu</option>
-          <option value="historical">Gaya Bahasa: Sejarah</option>
+          <option value="normal">Gaya: Normal</option>
+          <option value="funny">Gaya: Lucu</option>
+          <option value="historical">Gaya: Sejarah</option>
+        </select>
+
+        <select
+          value={currentFps}
+          onChange={(e) => onFpsChange(e.target.value)}
+          disabled={modelStatus === "loading"}
+        >
+          <option value="2">Limit: 2 FPS</option>
+          <option value="5">Limit: 5 FPS</option>
+          <option value="10">Limit: 10 FPS</option>
         </select>
       </div>
     </section>

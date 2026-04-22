@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function Header({ modelStatus }) {
+export default function Header({ modelStatus, progress }) {
   return (
     <header
       style={{
@@ -17,7 +17,10 @@ export default function Header({ modelStatus }) {
           color: modelStatus === "ready" ? "green" : "orange",
         }}
       >
-        Status Sistem: {modelStatus.toUpperCase()}
+        Status:{" "}
+        {modelStatus === "loading"
+          ? `Menunggu Model... ${progress}%`
+          : modelStatus.toUpperCase()}
       </div>
     </header>
   );

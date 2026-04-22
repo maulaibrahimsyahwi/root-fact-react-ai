@@ -5,67 +5,77 @@ import InfoPanel from "./components/InfoPanel";
 import { useAppState } from "./hooks/useAppState";
 
 function App() {
-  const { state, actions } = useAppState();
+  const { state, services, actions } = useAppState();
   const detectionCleanupRef = useRef(null);
   const isRunningRef = useRef(false);
+  const lastFrameTimeRef = useRef(0);
+  const isInitializedRef = useRef(false);
   const [currentTone, setCurrentTone] = useState("normal");
 
   const initializeServices = useCallback(async () => {
     try {
       actions.setModelStatus("loading");
-      await Promise.all([
-        state.services.detection.loadModel(),
-        state.services.rootFacts.loadModel(),
-      ]);
+
+      const handleVisionProgress = (val) => actions.setLoadingProgress(val);
+      const handleNlpProgress = (val) => actions.setLoadingProgress(val);
+
+      await services.detection.loadModel(handleVisionProgress);
+      await services.rootFacts.loadModel(handleNlpProgress);
+
       actions.setModelStatus("ready");
     } catch (error) {
       actions.setError(error.message);
       actions.setModelStatus("error");
     }
-  }, [actions, state.services]);
+  }, [actions, services]);
 
   useEffect(() => {
-    initializeServices();
+    if (!isInitializedRef.current) {
+      isInitializedRef.current = true;
+      initializeServices();
+    }
+
     return () => {
       if (detectionCleanupRef.current) {
         cancelAnimationFrame(detectionCleanupRef.current);
       }
-      if (state.services.camera) {
-        state.services.camera.stop();
+      if (services.camera) {
+        services.camera.stop();
       }
     };
-  }, [initializeServices, state.services]);
+  }, [initializeServices, services]);
 
-  const detectionLoop = async () => {
+  const detectionLoop = async (timestamp) => {
     if (
       !isRunningRef.current ||
-      !state.services.detection.isLoaded() ||
-      !state.services.camera.videoElement
+      !services.detection.isLoaded() ||
+      !services.camera.videoElement
     )
       return;
 
-    try {
-      const result = await state.services.detection.predict(
-        state.services.camera.videoElement,
-      );
+    const delay = 1000 / state.fpsLimit;
 
-      if (result && result.score > 0.6) {
-        actions.setDetectionResult(result);
+    if (timestamp - lastFrameTimeRef.current >= delay) {
+      lastFrameTimeRef.current = timestamp;
 
-        if (
-          state.appState !== "generating" &&
-          state.services.rootFacts.isReady()
-        ) {
-          actions.setAppState("generating");
-          const fact = await state.services.rootFacts.generateFacts(
-            result.label,
-          );
-          actions.setFunFactData({ text: fact, tone: currentTone });
-          actions.setAppState("idle");
+      try {
+        const result = await services.detection.predict(
+          services.camera.videoElement,
+        );
+
+        if (result && result.score > 0.6) {
+          actions.setDetectionResult(result);
+
+          if (state.appState !== "generating" && services.rootFacts.isReady()) {
+            actions.setAppState("generating");
+            const fact = await services.rootFacts.generateFacts(result.label);
+            actions.setFunFactData({ text: fact, tone: currentTone });
+            actions.setAppState("idle");
+          }
         }
+      } catch (error) {
+        console.error(error);
       }
-    } catch (error) {
-      console.error(error);
     }
 
     if (isRunningRef.current) {
@@ -75,7 +85,7 @@ function App() {
 
   const toggleCamera = async () => {
     if (state.isRunning) {
-      state.services.camera.stop();
+      services.camera.stop();
       isRunningRef.current = false;
       if (detectionCleanupRef.current) {
         cancelAnimationFrame(detectionCleanupRef.current);
@@ -83,10 +93,11 @@ function App() {
       actions.setIsRunning(false);
     } else {
       try {
-        await state.services.camera.start();
+        await services.camera.start();
         isRunningRef.current = true;
         actions.setIsRunning(true);
-        detectionLoop();
+        lastFrameTimeRef.current = performance.now();
+        detectionCleanupRef.current = requestAnimationFrame(detectionLoop);
       } catch (error) {
         actions.setError("Failed to access camera");
       }
@@ -95,7 +106,11 @@ function App() {
 
   const handleToneChange = (newTone) => {
     setCurrentTone(newTone);
-    state.services.rootFacts.setTone(newTone);
+    services.rootFacts.setTone(newTone);
+  };
+
+  const handleFpsChange = (newFps) => {
+    actions.setFpsLimit(Number(newFps));
   };
 
   const copyToClipboard = async (text) => {
@@ -108,17 +123,22 @@ function App() {
 
   return (
     <div className="app-container">
-      <Header modelStatus={state.modelStatus} />
+      <Header
+        modelStatus={state.modelStatus}
+        progress={state.loadingProgress}
+      />
 
       <main className="main-content">
         <CameraSection
           isRunning={state.isRunning}
-          services={state.services}
+          services={services}
           modelStatus={state.modelStatus}
           error={state.error}
           currentTone={currentTone}
+          currentFps={state.fpsLimit}
           onToggleCamera={toggleCamera}
           onToneChange={handleToneChange}
+          onFpsChange={handleFpsChange}
         />
 
         <InfoPanel
@@ -133,46 +153,6 @@ function App() {
       <footer className="footer">
         <p>Powered by TensorFlow.js & Transformers.js</p>
       </footer>
-
-      {state.error && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "1rem",
-            left: "50%",
-            transform: "translateX(-50%)",
-            maxWidth: "380px",
-            padding: "0.875rem 1rem",
-            background: "#fef2f2",
-            border: "1px solid #fecaca",
-            borderRadius: "var(--radius-md)",
-            color: "#991b1b",
-            fontSize: "0.8125rem",
-            boxShadow: "var(--shadow-lg)",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            zIndex: 1000,
-          }}
-        >
-          <strong>Error:</strong> {state.error}
-          <button
-            onClick={() => actions.setError(null)}
-            style={{
-              marginLeft: "auto",
-              background: "transparent",
-              border: "none",
-              fontSize: "1.25rem",
-              cursor: "pointer",
-              color: "#991b1b",
-              padding: 0,
-              lineHeight: 1,
-            }}
-          >
-            ×
-          </button>
-        </div>
-      )}
     </div>
   );
 }

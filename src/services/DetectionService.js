@@ -9,7 +9,7 @@ export class DetectionService {
     this.config = null;
   }
 
-  async loadModel() {
+  async loadModel(onProgress) {
     try {
       if (navigator.gpu) {
         await tf.setBackend("webgpu");
@@ -18,7 +18,11 @@ export class DetectionService {
       }
       await tf.ready();
 
-      this.model = await tf.loadLayersModel("/model/model.json");
+      this.model = await tf.loadLayersModel("/model/model.json", {
+        onProgress: (fraction) => {
+          if (onProgress) onProgress(Math.round(fraction * 100));
+        },
+      });
 
       const response = await fetch("/model/metadata.json");
       this.config = await response.json();
